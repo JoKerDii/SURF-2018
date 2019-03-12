@@ -19,7 +19,7 @@ RNA methylation has emerged as an important layer of gene regulation. Tens of th
 
 This is my first time to get to machine learning, R programming, and even bioinformatics. I have learned loads of new knowledge (but I know they are just a little for a real bioinformatician) in this field within a quite short period, though the result is not satisfied, I know both success and failure are what I want, it is that taking effort as I may matters so much for me. 
 
--- **Learn basic concept of machine learning.**
+- **Learn basic concept of machine learning.**
 There are some sources I refered to:
 1. [Machine learning](https://en.wikipedia.org/wiki/Machine_learning)
 2. [Cross validation](https://en.wikipedia.org/wiki/Cross-validation_(statistics))
@@ -27,13 +27,13 @@ There are some sources I refered to:
 4. [Random forest (rf)](https://en.wikipedia.org/wiki/Random_forest)
 5. [Support-vector machine (svm)](https://en.wikipedia.org/wiki/Support-vector_machine)
 
--- **Learn application of machine learning method in bioinformatics (focusing on epigenetics such as posttranscriptional modification of RNAs).**
+- **Learn application of machine learning method in bioinformatics (focusing on epigenetics such as posttranscriptional modification of RNAs).**
 I detailed read some papers that are closely related to this project, you can find them in "**Paper**" file:
 1. Dynamic transcriptomic m6A decoration writers, erasers, readers and functions in RNA metabolism
 2. MethyRNA A web-server for identification of N6-methyladenosine sites
 3. SRAMP prediction of mammalian N6 methyladenosine (m6A) sites based on sequence derived features
 
--- **Learn R programming, visualization and caret package.**
+- **Learn R programming, visualization and caret package.**
 I read these two books recommended by Dr. Meng, you can find them in "**R programming books**" file:
 1. An introduction to R
 2. Use R
@@ -47,7 +47,7 @@ Here are some other online sources that helped me quickly pick up R programming:
 3. [R Tutorial for Beginners: Learning R Programming - Guru99](https://www.guru99.com/r-tutorial.html)
 4. [Online learning R-studio](https://www.rstudio.com/online-learning/#r-programming)
 
--- **Work on this project**
+- **Work on this project**
 My part was to predict the target specificity of RNA methylation writers —— METTL3， METTL14 and METTL16. I used rf to train the data, compared the results of cross validation by gbm, rf and svm, selected the top several important features and rebuilt the model, frustratingly, I got an unsatisfied result. The code is in "**code**" file.
 
 
