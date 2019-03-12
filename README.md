@@ -56,8 +56,11 @@ Here are some other online sources that helped me quickly pick up R programming:
 
 - **Work on this project**
 
-My part was to predict the target specificity of RNA methylation writers —— METTL3， METTL14 and METTL16. I used rf to train the data, compared the results of cross validation by gbm, rf and svm, selected the top several important features and rebuilt the model, frustratingly, I got an unsatisfied result. The code is in "**code**" file.
+My part was to predict the target specificity of RNA methylation writers —— METTL3， METTL14 and METTL16. I used rf to train the data, compared the results of cross validation by gbm, rf and svm, selected the top several important features and rebuilt the model, frustratingly, I got an unsatisfied result with pretty low AUC performance. The code is in "**code**" file.
 
+- **Reflection and Future**
+
+After reflection, I know I lack the basic understanding of this field for I was a year 1 student and just a beginner. Any real success in science need effort and time, and it is definitely impossible to get a good result for one that just learned for three months. Programming, data analysis, mathematics of machine learning and bioinformatics are what I need to spend time, maybe for years, to learn. To my delight, they are exactly what I am interested in.
 
 
 
