@@ -1,0 +1,290 @@
+```{r}
+
+library(dplyr)
+library(m6ALogisticModel)
+library(ggplot2)
+library(ROCR)
+library(pROC)
+library(e1071)
+
+library(BSgenome)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(SummarizedExperiment)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(fitCons.UCSC.hg19)
+library(phastCons100way.UCSC.hg19)
+library(caret)
+fitControl <- trainControl(method = "cv",
+                           number = 5,
+                           classProbs = TRUE,
+                           summaryFunction = twoClassSummary)
+
+TwoFeature314_train <- readRDS("/home/zhendi/07TwoFeature314_train.rds")
+TwoFeature314_test <- readRDS("/home/zhendi/07TwoFeature314_test.rds")
+TwoFeature16_train <- readRDS("/home/zhendi/07TwoFeature16_train.rds")
+TwoFeature16_test <- readRDS("/home/zhendi/07TwoFeature16_test.rds")
+
+Data314_train <- readRDS("/home/zhendi/07Data314_train.rds")
+Data314_test <- readRDS("/home/zhendi/07Data314_test.rds")
+Data314_seq_train <- readRDS("/home/zhendi/07Data314_seq_train.rds")
+Data314_seq_test <- readRDS("/home/zhendi/07Data314_seq_test.rds")
+
+Data16_train <- readRDS("/home/zhendi/07Data16_train.rds")
+Data16_test <- readRDS("/home/zhendi/07Data16_test.rds")
+Data16_seq_train <- readRDS("/home/zhendi/07Data16_seq_train.rds")
+Data16_seq_test <- readRDS("/home/zhendi/07Data16_seq_test.rds")
+
+#gbm
+#data314
+varImp_Data314 <- readRDS("/home/zhendi/07varImp_Data314.rds")
+varImp_Data314r <- readRDS("/home/zhendi/07varImp_Data314r.rds")
+#for loop
+AUC_Gen_gbm_314<-as.double(c(1:2))
+for(i in 1:nrow(varImp_Data314)){
+  # setcolorder(Gen_up_train3, imp3v)
+  top_selected <- which(colnames(Data314_train)%in%varImp_Data314r[1:i]==TRUE)
+  #top_selected <- which(rank(varImp_Data314$importance$Overall)>(length(varImp_Data314)-i))
+  selected_matrix <- Data314_train[,c(top_selected,ncol(Data314_train))]
+  set.seed(825)
+  Gen_314_gbmfit<-train(label ~ ., data = Data314_train[,c(top_selected,ncol(Data314_train))], 
+                        method = "gbm", 
+                        trControl = fitControl, 
+                        preProc=c("center","scale"),
+                        metric = "ROC")
+  #Data314_test$gbmpredi<-predict(Gen_314_gbmfit,Data314_test,type = "prob")[,1]
+  #pred_Gen_gbm_314<-prediction(Data314_test$gbmpredi,Data314_test$label)
+  #AUC_Gen_gbm_314[i]<-as.double(performance(pred_Gen_gbm_314,measure = "auc")@y.values)
+  AUC_Gen_gbm_314[i]<- max(Gen_314_gbmfit$results$ROC)
+}
+
+AUC_Gen_gbm_314<-cbind(AUC_Gen_gbm_314,c(1:length(AUC_Gen_gbm_314)))
+feature<-c(1:nrow(AUC_Gen_gbm_314))
+
+ggplot(data = as.data.frame(AUC_Gen_gbm_314), mapping = aes(x = feature, y = AUC_Gen_gbm_314)) + geom_line()
+
+#top index
+index_gbm_M314<-which(AUC_Gen_gbm_314==max(AUC_Gen_gbm_314),arr.ind=TRUE)
+top_selected_gbm_M314<-which(colnames(Data314_train)%in%varImp_Data314r[1:index_gbm_M314]==TRUE)
+#pre_processed data
+M314_biof_training_gbm=Data314_train[,c(top_selected_gbm_M314,ncol(Data314_train))]
+M314_biof_testing_gbm=Data314_test[,c(top_selected_gbm_M314,ncol(Data314_train))]
+#gbm again
+set.seed(825)
+gbmfit_two_F314<-train(label~.,data=M314_biof_training_gbm,
+                       method="gbm",
+                       trControl = fitControl,
+                       preProc=c("center","scale"),
+                       metric="ROC")
+
+gbmPre_F_Two314<-predict(gbmfit_two_F314,newdata=M314_biof_testing_gbm,type="prob")
+roc_gbm_F_Two314<-roc(M314_biof_testing_gbm$label,as.vector(gbmPre_F_Two314)[,1])
+
+plot(roc_gbm_F_Two314,print.auc=TRUE,main="gbm_roc_two_F314")
+
+###############################################
+#Data314_seq
+
+varImp_Data314_seq <- readRDS("/home/zhendi/07varImp_Data314_seq.rds")
+varImp_Data314_seqr <- readRDS("/home/zhendi/07varImp_Data314_seqr.rds")
+
+#for loop
+AUC_Gen_gbm_314_seq <- as.double(c(1:2))
+for(i in 1:nrow(varImp_Data314_seq)){
+  # setcolorder(Gen_up_train3, imp3v)
+  top_selected <- which(colnames(Data314_seq_train)%in%varImp_Data314_seqr[1:i]==TRUE)
+  #top_selected <- which(rank(varImp_Data314$importance$Overall)>(length(varImp_Data314)-i))
+  selected_matrix <- Data314_seq_train[,c(top_selected,ncol(Data314_seq_train))]
+  set.seed(8)
+  Gen_314_seq_gbmfit<-train(label ~ ., data = Data314_seq_train[,c(top_selected,ncol(Data314_seq_train))], 
+                            method = "gbm", 
+                            trControl = fitControl, 
+                            preProc=c("center","scale"),
+                            metric = "ROC")
+  #Data314_seq_test$RFpredi<-predict(Gen_314_seq_RFfit,Data314_seq_test,type = "prob")[,1]
+  #pred_Gen_RF_314_seq<-prediction(Data314_seq_test$RFpredi,Data314_seq_test$label)
+  #AUC_Gen_RF_314_seq[i]<-as.double(performance(pred_Gen_RF_314_seq,measure = "auc")@y.values)
+  AUC_Gen_gbm_314_seq[i]<- max(Gen_314_seq_gbmfit$results$ROC)
+}
+
+AUC_Gen_gbm_314_seq<-cbind(AUC_Gen_gbm_314_seq,c(1:length(AUC_Gen_gbm_314_seq)))
+feature<-c(1:nrow(AUC_Gen_gbm_314_seq))
+
+ggplot(data = as.data.frame(AUC_Gen_gbm_314_seq), mapping = aes(x= feature, y = AUC_Gen_gbm_314_seq)) + geom_line()
+
+#top index
+index_gbm_M314_seq<-which(AUC_Gen_gbm_314_seq==max(AUC_Gen_gbm_314_seq),arr.ind=TRUE)
+top_selected_gbm_M314_seq<-which(colnames(Data314_seq_train)%in%varImp_Data314_seqr[1:index_gbm_M314_seq]==TRUE)
+#pre_processed data
+M314_seq_biof_training_gbm=Data314_seq_train[,c(top_selected_gbm_M314_seq,ncol(Data314_seq_train))]
+M314_seq_biof_testing_gbm=Data314_seq_test[,c(top_selected_gbm_M314_seq,ncol(Data314_seq_train))]
+
+#gbm again
+set.seed(825)
+gbmfit_two_F314_seq<-train(label~.,data=M314_seq_biof_training_gbm,
+                           method="gbm",
+                           verbose=FALSE,
+                           trControl = fitControl,
+                           metric="ROC")
+gbmPre_F_Two314_seq<-predict(gbmfit_two_F314_seq,newdata=M314_seq_biof_testing_gbm,type="prob")
+roc_gbm_F_Two314_seq<-roc(M314_seq_biof_testing_gbm$label,as.vector(gbmPre_F_Two314_seq)[,1])
+
+
+plot(roc_gbm_F_Two314_seq,print.auc=TRUE,main="gbmroc_two_F314_seq")
+
+
+######################################################
+#Data16_seq
+varImp_Data16_seq <- readRDS("/home/zhendi/07varImp_Data16_seq.rds")
+varImp_Data16_seqr <- readRDS("/home/zhendi/07varImp_Data16_seqr.rds")
+
+#for loop
+AUC_Gen_gbm_16_seq<-as.double(c(1:2))
+for(i in 1:nrow(varImp_Data16_seq)){
+  # setcolorder(Gen_up_train3, imp3v)
+  top_selected <- which(colnames(Data16_seq_train)%in%varImp_Data16_seqr[1:i]==TRUE)
+  #top_selected <- which(rank(varImp_Data314$importance$Overall)>(length(varImp_Data314)-i))
+  selected_matrix <- Data16_seq_train[,c(top_selected,ncol(Data16_seq_train))]
+  set.seed(8)
+  Gen_16_seq_gbmfit<-train(label ~ ., data = Data16_seq_train[,c(top_selected,ncol(Data16_seq_train))], 
+                           method = "gbm", 
+                           trControl = fitControl, 
+                           preProc=c("center","scale"),
+                           metric = "ROC")
+  #Data16_seq_test$RFpredi<-predict(Gen_16_seq_RFfit,Data16_seq_test,type = "prob")[,1]
+  #pred_Gen_RF_16_seq<-prediction(Data16_seq_test$RFpredi,Data16_seq_test$label)
+  #AUC_Gen_RF_16_seq[i]<-as.double(performance(pred_Gen_RF_16_seq,measure = "auc")@y.values)
+  AUC_Gen_gbm_16_seq[i]<- max(Gen_16_seq_gbmfit$results$ROC)
+}
+
+AUC_Gen_gbm_16_seq<-cbind(AUC_Gen_gbm_16_seq,c(1:length(AUC_Gen_gbm_16_seq)))
+feature<-c(1:nrow(AUC_Gen_gbm_16_seq))
+
+ggplot(data = as.data.frame(AUC_Gen_gbm_16_seq), mapping = aes(x = feature, y = AUC_Gen_gbm_16_seq)) + geom_line()
+
+
+#top index
+index_gbm_16_seq<-which(AUC_Gen_gbm_16_seq==max(AUC_Gen_gbm_16_seq),arr.ind=TRUE)
+top_selected_gbm_M16_seq<-which(colnames(Data16_seq_train)%in%varImp_Data16_seqr[1:index_gbm_16_seq]==TRUE)
+#pre_processed data
+M16_seq_biof_training_gbm=Data16_seq_train[,c(top_selected_gbm_M16_seq,ncol(Data16_seq_train))]
+M16_seq_biof_testing_gbm=Data16_seq_test[,c(top_selected_gbm_M16_seq,ncol(Data16_seq_train))]
+
+#gbm again
+set.seed(825)
+gbmfit_two_F16_seq<-train(label~.,data=M16_seq_biof_training_gbm,
+                          method="gbm",
+                          preProc=c("center","scale"),
+                          trControl = fitControl,
+                          metric="ROC")
+gbmPre_F_Two16_seq<-predict(gbmfit_two_F16_seq,newdata=M16_seq_biof_testing_gbm,type="prob")
+roc_gbm_F_Two16_seq<-roc(M16_seq_biof_testing_gbm$label,as.vector(gbmPre_F_Two16_seq)[,1])
+
+
+plot(roc_gbm_F_Two16_seq,print.auc=TRUE,main="gbmroc_two_F16_seq_two")
+
+
+####################################################
+#Data16
+varImp_Data16 <- readRDS("/home/zhendi/07varImp_Data16.rds")
+varImp_Data16r <- readRDS("/home/zhendi/07varImp_Data16r.rds")
+AUC_Gen_gbm_16<-as.double(c(1:2))
+for(i in 1:nrow(varImp_Data16)){
+  # setcolorder(Gen_up_train3, imp3v)
+  top_selected <- which(colnames(Data16_train)%in%varImp_Data16r[1:i]==TRUE)
+  #top_selected <- which(rank(varImp_Data314$importance$Overall)>(length(varImp_Data314)-i))
+  selected_matrix <- Data16_train[,c(top_selected,ncol(Data16_train))]
+  set.seed(8)
+  Gen_16_gbmfit<-train(label ~ ., data = Data16_train[,c(top_selected,ncol(Data16_train))], 
+                       method = "gbm", 
+                       trControl = fitControl, 
+                       preProc=c("center","scale"),
+                       metric = "ROC")
+  #Data16_test$gbmpredi<-predict(Gen_16_gbmfit,Data16_test,type = "prob")[,1]
+  #pred_Gen_gbm_16<-prediction(Data16_test$gbmpredi,Data16_test$label)
+  #AUC_Gen_gbm_16[i]<-as.double(performance(pred_Gen_RF_16,measure = "auc")@y.values)
+  AUC_Gen_gbm_16[i]<- max(Gen_16_gbmfit$results$ROC)
+}
+
+AUC_Gen_gbm_16<-cbind(AUC_Gen_gbm_16,c(1:length(AUC_Gen_gbm_16)))
+feature<-c(1:nrow(AUC_Gen_gbm_16))
+
+ggplot(data = as.data.frame(AUC_Gen_gbm_16), mapping = aes(x = feature, y = AUC_Gen_gbm_16)) + geom_line()
+
+#top index
+index_gbm_M16<-which(AUC_Gen_gbm_16==max(AUC_Gen_gbm_16),arr.ind=TRUE)
+top_selected_gbm_M16<-which(colnames(Data16_train)%in%varImp_Data16r[1:index_gbm_M16]==TRUE)
+#pre_processed data
+M16_biof_training_gbm=Data16_train[,c(top_selected_gbm_M16,ncol(Data16_train))]
+M16_biof_testing_gbm=Data16_test[,c(top_selected_gbm_M16,ncol(Data16_train))]
+#gbm again
+set.seed(825)
+gbmfit_bio16_F<-train(label~.,data=M16_biof_training_gbm,
+                      method="gbm",
+                      preProc=c("center","scale"),
+                      trControl = fitControl,
+                      metric="ROC")
+gbmPre_F_bio16<-predict(gbmfit_bio16_F,newdata=M16_biof_testing_gbm,type="prob")
+roc_gbm_F_bio16<-roc(M16_biof_testing_gbm$label,as.vector(gbmPre_F_bio16)[,1])
+
+plot(roc_gbm_F_bio16,print.auc=TRUE,main="gbmroc_two_F_bio16")
+
+
+###########################################
+#########bind and train
+#M16_seq_biof_training_rf
+#M314_seq_biof_training_rf
+#M16_biof_training_rf
+#M314_biof_training_rf
+
+#M16_seq_biof_testing_rf
+#M314_seq_biof_testing_rf
+#M16_biof_testing_rf
+#M314_biof_testing_rf
+gbm_twofeature_new_training314=TwoFeature314_train[,c(top_selected_gbm_M314,top_selected_gbm_M314_seq,ncol(TwoFeature314_train))]
+gbm_twofeature_new_testing314=TwoFeature314_test[,c(top_selected_gbm_M314,top_selected_gbm_M314_seq,ncol(TwoFeature314_test))]
+gbm_twofeature_new_training16=TwoFeature16_train[,c(top_selected_gbm_M16,top_selected_gbm_M16_seq,ncol(TwoFeature16_train))]
+gbm_twofeature_new_testing16=TwoFeature16_test[,c(top_selected_gbm_M16,top_selected_gbm_M16_seq,ncol(TwoFeature16_test))]
+
+##################################################
+#gbm
+
+set.seed(825)
+gbmFit_twoselect_314<- train(label~.,data=gbm_twofeature_new_training314,
+                             method="gbm",
+                             trControl=fitControl,
+                             preProc=c("center","scale"),
+                             metric="ROC")
+gbmpred_twoselect_314<-predict(gbmFit_twoselect_314, newdata = gbm_twofeature_new_testing314, type = "prob")
+gbmroc_twoselect_314<- roc(gbm_twofeature_new_testing314$label,as.vector(gbmpred_twoselect_314)[,1])
+
+
+plot(gbmroc_twoselect_314,print.auc=TRUE,main="gbmroc_twoselect_314")
+
+set.seed(825)
+gbmFit_twoselect_16<- train(label~.,data=gbm_twofeature_new_training16,
+                            method="gbm",
+                            trControl=fitControl,
+                            preProc=c("center","scale"),
+                            metric="ROC")
+gbmpred_twoselect_16<-predict(gbmFit_twoselect_16, newdata = gbm_twofeature_new_testing16, type = "prob")
+gbmroc_twoselect_16<- roc(gbm_twofeature_new_testing16$label,as.vector(gbmpred_twoselect_16)[,1])
+
+
+plot(gbmroc_twoselect_16,print.auc=TRUE,main="gbmroc_twoselect_16")
+
+
+###############################################
+#plot_twofeatures314
+#pdf("gbmroc_twoselect_314_unselected_314.pdf")
+#plot(gbmroc_twoselect_314,print.auc=TRUE,col="red")
+#plot.roc(roc_two_314,print.auc=TRUE,add=TRUE,col="blue")
+#dev.off()
+#plot_twofeatures16
+#pdf("gbmroc_twoselect_16_unselected_16.pdf")
+#plot(gbmroc_twoselect_16,print.auc=TRUE,col="red")
+#plot.roc(roc_two_16,print.auc=TRUE,add=TRUE,col="blue")
+#dev.off()
+
+```
+
